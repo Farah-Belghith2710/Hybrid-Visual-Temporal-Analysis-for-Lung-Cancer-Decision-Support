@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuminaPath AI | Clinical Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --prussian-blue: #003153;
+            --teal-accent: #0e7490;
+            --bg-canvas: #f1f5f9;
+            --border-muted: #cbd5e1;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #1e293b;
+            padding: 30px;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+            height: 85vh;
+        }
+
+        .glass-panel {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--border-muted);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .col-inputs {
+            flex: 0 0 300px;
+            padding: 25px;
+        }
+
+        .col-viewer {
+            flex: 1;
+            padding: 20px;
+            position: relative;
+        }
+
+        .col-results {
+            flex: 0 0 400px;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            color: var(--prussian-blue);
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--bg-canvas);
+            padding-bottom: 10px;
+        }
+
+        .label-tech {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-control,
+        .form-select {
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-muted);
+        }
+
+        .viewport-black {
+            background: #000;
+            flex-grow: 1;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #1e293b;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        #ct-image {
+            max-height: 100%;
+            max-width: 100%;
+        }
+
+        .result-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-muted);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .llm-report-box {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--teal-accent);
+            padding: 15px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #334155;
+            white-space: pre-wrap;
+            font-family: 'Georgia', serif;
+        }
+
+        .stat-heading {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--teal-accent);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--prussian-blue);
+        }
+
+        .stat-sub {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .btn-prussian {
+            background: var(--prussian-blue);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 700;
+            width: 100%;
+            margin-top: auto;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-prussian:hover {
+            background: #004d80;
+            color: white;
+        }
+
+        .loader {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        <aside class="glass-panel col-inputs">
+            <div class="panel-header"><i class="fa-solid fa-microscope me-2"></i>Acquisition</div>
+            <label class="label-tech">Imaging Stream (.zip)</label>
+            <input type="file" id="fileInput" class="form-control">
+
+            <label class="label-tech">Patient Age</label>
+            <input type="number" id="ageInput" class="form-control" value="65">
+
+            <label class="label-tech">Sex</label>
+            <select id="genderInput" class="form-select">
+                <option value="1">MALE</option>
+                <option value="2">FEMALE</option>
+            </select>
+
+            <label class="label-tech">Smoking History</label>
+            <select id="smokingInput" class="form-select">
+                <option value="1">ACTIVE</option>
+                <option value="2">NON-SMOKER</option>
+            </select>
+
+            <button onclick="uploadAndRun()" id="submitBtn" class="btn btn-prussian">
+                <div id="loader" class="loader"></div> <span id="btnText">Execute Analysis</span>
+            </button>
+        </aside>
+
+        <main class="glass-panel col-viewer">
+            <div class="panel-header"><i class="fa-solid fa-lungs me-2"></i>Diagnostic Viewport</div>
+            <div class="viewport-black">
+                <img id="ct-image" src="" alt="">
+                <div id="idle-text" class="text-white opacity-25">SYSTEM READY: AWAITING DICOM DATA</div>
+            </div>
+            <div class="mt-3 text-muted" style="font-size: 0.7rem;">
+                ENSIT ENGINEERING PFA • MULTIMODAL CLINICAL DECISION SUPPORT SYSTEM
+            </div>
+        </main>
+
+        <section class="glass-panel col-results">
+            <div class="panel-header"><i class="fa-solid fa-chart-line me-2"></i>Diagnostics</div>
+
+            <div id="results-area" style="opacity: 0.1; transition: 0.6s;">
+                <div class="result-card">
+                    <span class="stat-heading">AI Verdict</span>
+                    <div id="verdict-label" class="stat-val">---</div>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div id="prob-bar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <small id="prob-text" class="fw-bold text-muted mt-1 d-block">0% Confidence Score</small>
+                </div>
+
+                <div class="result-card">
+                    <span class="stat-heading">Pathological Staging</span>
+                    <div id="stage-text" class="stat-sub">---</div>
+                </div>
+
+                <div class="result-card">
+                    <span class="stat-heading">Survival Forecasting</span>
+                    <div class="stat-sub"><span id="survival-text">---</span> Days (Est.)</div>
+                </div>
+
+                <div class="result-card">
+                    <span class="stat-heading"><i class="fa-solid fa-robot me-1"></i>Clinical AI Narrative</span>
+                    <div id="llm-report-content" class="llm-report-box">
+                        Awaiting data fusion for narrative generation...
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-outline-secondary w-100 mt-auto btn-sm" onclick="printNarrativeOnly()">
+                <i class="fa-solid fa-print me-1"></i> PRINT REPORT ONLY
+            </button>
+        </section>
+
+    </div>
+
+    <script>
+        async function uploadAndRun() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+
+            document.getElementById('loader').style.display = 'inline-block';
+            document.getElementById('btnText').innerText = "Processing...";
+            document.getElementById('submitBtn').disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('age', document.getElementById('ageInput').value);
+            formData.append('gender', document.getElementById('genderInput').value);
+            formData.append('smoking', document.getElementById('smokingInput').value);
+
+            try {
+                const response = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                document.getElementById('results-area').style.opacity = '1';
+                document.getElementById('idle-text').style.display = 'none';
+                document.getElementById('ct-image').src = data.image_url;
+
+                const verdict = document.getElementById('verdict-label');
+                verdict.innerText = data.result;
+
+                if (data.result === "MALIGNANT") {
+                    verdict.style.color = "#b91c1c";
+                    document.getElementById('prob-bar').className = "progress-bar bg-danger";
+                } else {
+                    verdict.style.color = "#15803d";
+                    document.getElementById('prob-bar').className = "progress-bar bg-success";
+                }
+
+                document.getElementById('prob-text').innerText = data.probability + "% Confidence Score";
+                document.getElementById('prob-bar').style.width = data.probability + "%";
+                document.getElementById('stage-text').innerText = data.stage;
+                document.getElementById('survival-text').innerText = data.survival_days;
+                document.getElementById('llm-report-content').innerText = data.llm_report;
+
+            } catch (e) {
+                console.error(e);
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('btnText').innerText = "Execute Analysis";
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+
+        // Only prints the Narrative content
+        function printNarrativeOnly() {
+            const content = document.getElementById('llm-report-content').innerText;
+            const verdict = document.getElementById('verdict-label').innerText;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Clinical Narrative Report</title>');
+            printWindow.document.write('<style>body{font-family: Georgia, serif; padding: 40px; color: #333;} h2{color: #003153; border-bottom: 1px solid #ccc; padding-bottom: 10px;} .meta{font-weight: bold; margin-bottom: 20px; color: #0e7490;} pre{white-space: pre-wrap; font-family: inherit; font-size: 1.1rem; line-height: 1.6;}</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<h2>Clinical Case Narrative</h2>');
+            printWindow.document.write('<div class="meta">Case Status: ' + verdict + '</div>');
+            printWindow.document.write('<pre>' + content + '</pre>');
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+    </script>
+</body>
+
+</html>

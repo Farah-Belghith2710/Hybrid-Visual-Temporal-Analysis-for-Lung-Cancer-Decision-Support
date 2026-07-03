@@ -1,0 +1,7 @@
+static/uploads/
+cnn data_kaggle/
+nlst_780/
+test_ct for app/
+outputs/
+*.zip
+.env
